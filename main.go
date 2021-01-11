@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
@@ -27,7 +27,7 @@ func InitRouting(e *echo.Echo, u *User) {
 	e.POST("user", u.CreateUser)
 	e.PUT("user/:id", u.UpdateUser)
 	e.DELETE("user/:id", u.DeleteUser)
-	e.GET("user/:id", u.GetUser)
+	e.GET("user", u.GetUser)
 	e.GET("users", u.GetUsers)
 }
 
@@ -42,7 +42,14 @@ func (u *User) CreateUser(c echo.Context) error {
 	if err := c.Bind(&user); err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, user.ID)
+
+	user = User{
+		ID:   1,
+		Name: user.Name,
+		Age:  user.Age,
+	}
+
+	return c.JSON(http.StatusOK, user)
 }
 
 // UpdateUser ...
@@ -68,18 +75,72 @@ func (u *User) DeleteUser(c echo.Context) error {
 func (u *User) GetUser(c echo.Context) error {
 	user := User{}
 
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return err
+	}
 
-	fmt.Println(id, user)
+	// Getメソッドのイメージ
+	if id == 1 {
+		user = User{
+			ID:   1,
+			Name: "Tom",
+			Age:  29,
+		}
+	} else if id == 2 {
+		user = User{
+			ID:   2,
+			Name: "Bob",
+			Age:  35,
+		}
 
-	return c.JSON(http.StatusOK, id)
+	} else {
+		return c.JSON(http.StatusOK, "Not Found")
+	}
+
+	return c.JSON(http.StatusOK, user)
 }
 
 // GetUsers ...
 func (u *User) GetUsers(c echo.Context) error {
 	users := []*User{}
 
-	fmt.Println(users)
+	name := c.QueryParam("name")
+
+	// Get Allメソッドのイメージ
+	if name == "" {
+		users = []*User{
+			{
+				ID:   1,
+				Name: "Tom",
+				Age:  29,
+			},
+			{
+				ID:   2,
+				Name: "Bob",
+				Age:  35,
+			},
+		}
+	} else if name == "Tom" {
+		users = []*User{
+			{
+				ID:   1,
+				Name: "Tom",
+				Age:  29,
+			},
+		}
+	} else if name == "Bob" {
+		users = []*User{
+			{
+				ID:   2,
+				Name: "Bob",
+				Age:  35,
+			},
+		}
+	} else {
+		return c.JSON(http.StatusOK, "Not Found")
+	}
+
 	return c.JSON(http.StatusOK, users)
 }
 
