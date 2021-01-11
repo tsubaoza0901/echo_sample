@@ -27,7 +27,7 @@ func InitRouting(e *echo.Echo, u *User) {
 	e.POST("user", u.CreateUser)
 	e.PUT("user/:id", u.UpdateUser)
 	e.DELETE("user/:id", u.DeleteUser)
-	e.GET("user", u.GetUser)
+	e.GET("user/:id", u.GetUser)
 	e.GET("users", u.GetUsers)
 }
 
