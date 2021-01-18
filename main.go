@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
 
@@ -15,9 +13,10 @@ import (
 
 // User ...
 type User struct {
-	ID   uint   `json:"id"`
-	Name string `json:"name"`
-	Age  int    `json:"age"`
+	ID             uint   `json:"id" param:"id"`       // paramタグ
+	Name           string `json:"name" query:"name"`   // queryタグ
+	Age            int    `json:"age" query:"age"`     // queryタグ
+	SomethingArray []int  `json:"array" query:"array"` // queryタグ
 }
 
 // --------
@@ -26,157 +25,137 @@ type User struct {
 
 // InitRouting ...
 func InitRouting(e *echo.Echo, u *User) {
-	e.GET("use_session", u.UseSession)
-
-	// e.POST("user", u.CreateUser)
-	// e.PUT("user/:id", u.UpdateUser)
-	// e.DELETE("user/:id", u.DeleteUser)
-	// e.GET("user/:id", u.GetUser)
-	// e.GET("users", u.GetUsers)
+	e.POST("user", u.CreateUser)
+	e.PUT("user/:id", u.UpdateUser)
+	e.DELETE("user/:id", u.DeleteUser)
+	e.GET("user/:id", u.GetUser)
+	e.GET("users", u.GetUsers)
 }
 
 // --------
 // handler↓
 // --------
 
-// Session ...
-func Session(c echo.Context) error {
-	sess, _ := session.Get("new_session_name", c)
-	sess.ID = "session1"
-	fmt.Println("sess.ID:", sess.ID) // => sess.ID:
-	// fmt.Println("sess.IsNew:", sess.IsNew) // => sess.IsNew: true
+// CreateUser ...
+func (u *User) CreateUser(c echo.Context) error {
+	user := User{}
 
-	sess.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   86400 * 7,
-		HttpOnly: true,
+	if err := c.Bind(&user); err != nil {
+		return err
 	}
-	// fmt.Println("sess.Options:", sess.Options) // => sess.Options: &{/  604800 false true 0}
 
-	sess.Values["foo"] = "bar"
-	// fmt.Println("sess.Values:", sess.Values) // => sess.Values: map[foo:bar]
+	user = User{
+		ID:   1,
+		Name: user.Name,
+		Age:  user.Age,
+	}
 
-	fmt.Println("sess:", sess)
-	sess.Save(c.Request(), c.Response())
-	return nil
+	return c.JSON(http.StatusOK, user)
 }
 
-// UseSession ...
-func (u *User) UseSession(c echo.Context) error {
+// UpdateUser ...
+func (u *User) UpdateUser(c echo.Context) error {
+	user := User{}
 
-	Session(c)
+	if err := c.Bind(&user); err != nil {
+		return err
+	}
 
-	return c.JSON(http.StatusOK, "done")
+	return c.JSON(http.StatusOK, "Updated")
 }
 
-// // CreateUser ...
-// func (u *User) CreateUser(c echo.Context) error {
-// 	user := User{}
+// DeleteUser ...
+func (u *User) DeleteUser(c echo.Context) error {
+	if err := c.Bind(u); err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, "Deleted")
+}
 
-// 	if err := c.Bind(&user); err != nil {
-// 		return err
-// 	}
+// GetUser ...
+func (u *User) GetUser(c echo.Context) error {
+	user := User{}
 
-// 	user = User{
-// 		ID:   1,
-// 		Name: user.Name,
-// 		Age:  user.Age,
-// 	}
+	if err := c.Bind(&user); err != nil {
+		return err
+	}
 
-// 	return c.JSON(http.StatusOK, user)
-// }
+	fmt.Println(user.ID)
+	fmt.Println(user.Name)
+	fmt.Println(user.Age)
+	fmt.Println(user.SomethingArray)
+	for _, v := range user.SomethingArray {
+		fmt.Println(v)
+	}
 
-// // UpdateUser ...
-// func (u *User) UpdateUser(c echo.Context) error {
-// 	user := User{}
+	// id, err := strconv.Atoi(c.Param("id"))
+	// if err != nil {
+	// 	return err
+	// }
 
-// 	if err := c.Bind(&user); err != nil {
-// 		return err
-// 	}
+	// // Getメソッドのイメージ
+	// if id == 1 {
+	// 	user = User{
+	// 		ID:   1,
+	// 		Name: "Tom",
+	// 		Age:  29,
+	// 	}
+	// } else if id == 2 {
+	// 	user = User{
+	// 		ID:   2,
+	// 		Name: "Bob",
+	// 		Age:  35,
+	// 	}
 
-// 	return c.JSON(http.StatusOK, "Updated")
-// }
+	// } else {
+	// 	return c.JSON(http.StatusOK, "Not Found")
+	// }
 
-// // DeleteUser ...
-// func (u *User) DeleteUser(c echo.Context) error {
-// 	if err := c.Bind(u); err != nil {
-// 		return err
-// 	}
-// 	return c.JSON(http.StatusOK, "Deleted")
-// }
+	return c.JSON(http.StatusOK, user)
+}
 
-// // GetUser ...
-// func (u *User) GetUser(c echo.Context) error {
-// 	user := User{}
+// GetUsers ...
+func (u *User) GetUsers(c echo.Context) error {
+	users := []*User{}
 
-// 	id, err := strconv.Atoi(c.Param("id"))
-// 	if err != nil {
-// 		return err
-// 	}
+	name := c.QueryParam("name")
 
-// 	// Getメソッドのイメージ
-// 	if id == 1 {
-// 		user = User{
-// 			ID:   1,
-// 			Name: "Tom",
-// 			Age:  29,
-// 		}
-// 	} else if id == 2 {
-// 		user = User{
-// 			ID:   2,
-// 			Name: "Bob",
-// 			Age:  35,
-// 		}
+	// Get Allメソッドのイメージ
+	if name == "" {
+		users = []*User{
+			{
+				ID:   1,
+				Name: "Tom",
+				Age:  29,
+			},
+			{
+				ID:   2,
+				Name: "Bob",
+				Age:  35,
+			},
+		}
+	} else if name == "Tom" {
+		users = []*User{
+			{
+				ID:   1,
+				Name: "Tom",
+				Age:  29,
+			},
+		}
+	} else if name == "Bob" {
+		users = []*User{
+			{
+				ID:   2,
+				Name: "Bob",
+				Age:  35,
+			},
+		}
+	} else {
+		return c.JSON(http.StatusOK, "Not Found")
+	}
 
-// 	} else {
-// 		return c.JSON(http.StatusOK, "Not Found")
-// 	}
-
-// 	return c.JSON(http.StatusOK, user)
-// }
-
-// // GetUsers ...
-// func (u *User) GetUsers(c echo.Context) error {
-// 	users := []*User{}
-
-// 	name := c.QueryParam("name")
-
-// 	// Get Allメソッドのイメージ
-// 	if name == "" {
-// 		users = []*User{
-// 			{
-// 				ID:   1,
-// 				Name: "Tom",
-// 				Age:  29,
-// 			},
-// 			{
-// 				ID:   2,
-// 				Name: "Bob",
-// 				Age:  35,
-// 			},
-// 		}
-// 	} else if name == "Tom" {
-// 		users = []*User{
-// 			{
-// 				ID:   1,
-// 				Name: "Tom",
-// 				Age:  29,
-// 			},
-// 		}
-// 	} else if name == "Bob" {
-// 		users = []*User{
-// 			{
-// 				ID:   2,
-// 				Name: "Bob",
-// 				Age:  35,
-// 			},
-// 		}
-// 	} else {
-// 		return c.JSON(http.StatusOK, "Not Found")
-// 	}
-
-// 	return c.JSON(http.StatusOK, users)
-// }
+	return c.JSON(http.StatusOK, users)
+}
 
 // --------
 // main.go↓
@@ -184,9 +163,6 @@ func (u *User) UseSession(c echo.Context) error {
 
 func main() {
 	e := echo.New()
-
-	// sessionを使用するMiddlewareとして追加
-	e.Use(session.Middleware(sessions.NewCookieStore([]byte("secret"))))
 
 	u := new(User)
 	InitRouting(e, u)
