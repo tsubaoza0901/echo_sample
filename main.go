@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 )
 
 // --------
@@ -13,10 +15,25 @@ import (
 
 // User ...
 type User struct {
-	ID             uint   `json:"id" param:"id"`       // paramタグ
-	Name           string `json:"name" query:"name"`   // queryタグ
-	Age            int    `json:"age" query:"age"`     // queryタグ
-	SomethingArray []int  `json:"array" query:"array"` // queryタグ
+	ID   uint   `json:"id" param:"id"`
+	Name string `json:"name" validate:"required"` // validateタグ
+	Age  int    `json:"age"`
+	// SomethingArray []int  `json:"array" query:"array"`                   // queryタグ
+
+}
+
+// --------
+// validator↓
+// --------
+
+// CustomValidator ...
+type CustomValidator struct {
+	validator *validator.Validate
+}
+
+// Validate ...
+func (cv *CustomValidator) Validate(i interface{}) error {
+	return cv.validator.Struct(i)
 }
 
 // --------
@@ -41,6 +58,12 @@ func (u *User) CreateUser(c echo.Context) error {
 	user := User{}
 
 	if err := c.Bind(&user); err != nil {
+		log.Error(err)
+		return err
+	}
+	// バリデーションの呼び出し
+	if err := c.Validate(&user); err != nil {
+		log.Error(err)
 		return err
 	}
 
@@ -80,36 +103,36 @@ func (u *User) GetUser(c echo.Context) error {
 		return err
 	}
 
-	fmt.Println(user.ID)
-	fmt.Println(user.Name)
-	fmt.Println(user.Age)
-	fmt.Println(user.SomethingArray)
-	for _, v := range user.SomethingArray {
-		fmt.Println(v)
+	// fmt.Println(user.ID)
+	// fmt.Println(user.Name)
+	// fmt.Println(user.Age)
+	// fmt.Println(user.SomethingArray)
+	// for _, v := range user.SomethingArray {
+	// 	fmt.Println(v)
+	// }
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return err
 	}
 
-	// id, err := strconv.Atoi(c.Param("id"))
-	// if err != nil {
-	// 	return err
-	// }
+	// Getメソッドのイメージ
+	if id == 1 {
+		user = User{
+			ID:   1,
+			Name: "Tom",
+			Age:  29,
+		}
+	} else if id == 2 {
+		user = User{
+			ID:   2,
+			Name: "Bob",
+			Age:  35,
+		}
 
-	// // Getメソッドのイメージ
-	// if id == 1 {
-	// 	user = User{
-	// 		ID:   1,
-	// 		Name: "Tom",
-	// 		Age:  29,
-	// 	}
-	// } else if id == 2 {
-	// 	user = User{
-	// 		ID:   2,
-	// 		Name: "Bob",
-	// 		Age:  35,
-	// 	}
-
-	// } else {
-	// 	return c.JSON(http.StatusOK, "Not Found")
-	// }
+	} else {
+		return c.JSON(http.StatusOK, "Not Found")
+	}
 
 	return c.JSON(http.StatusOK, user)
 }
@@ -163,6 +186,9 @@ func (u *User) GetUsers(c echo.Context) error {
 
 func main() {
 	e := echo.New()
+
+	// CustomValidatorのインスタンス生成
+	e.Validator = &CustomValidator{validator: validator.New()}
 
 	u := new(User)
 	InitRouting(e, u)
