@@ -16,7 +16,7 @@ import (
 // User ...
 type User struct {
 	ID   uint   `json:"id" param:"id"`
-	Name string `json:"name" validate:"required"` // validateタグ
+	Name string `json:"name" validate:"required,yamada"` // validateタグ
 	Age  int    `json:"age"`
 	// SomethingArray []int  `json:"array" query:"array"`                   // queryタグ
 
@@ -33,7 +33,18 @@ type CustomValidator struct {
 
 // Validate ...
 func (cv *CustomValidator) Validate(i interface{}) error {
+	cv.validator.RegisterValidation("yamada", CustomValidate)
 	return cv.validator.Struct(i)
+}
+
+// CustomValidate ...
+func CustomValidate(fl validator.FieldLevel) bool {
+	return fl.Field().String() == "yamada"
+}
+
+// NewCustomValidator ...
+func NewCustomValidator() echo.Validator {
+	return &CustomValidator{validator: validator.New()}
 }
 
 // --------
@@ -188,7 +199,7 @@ func main() {
 	e := echo.New()
 
 	// CustomValidatorのインスタンス生成
-	e.Validator = &CustomValidator{validator: validator.New()}
+	e.Validator = NewCustomValidator()
 
 	u := new(User)
 	InitRouting(e, u)
