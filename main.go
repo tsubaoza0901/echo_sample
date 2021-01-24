@@ -19,7 +19,6 @@ type User struct {
 	Name string `json:"name" validate:"required,yamada"` // validateタグ
 	Age  int    `json:"age"`
 	// SomethingArray []int  `json:"array" query:"array"`                   // queryタグ
-
 }
 
 // --------
